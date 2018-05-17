@@ -35,6 +35,11 @@ namespace types {
     template<typename T> struct is_simd: std::false_type {};
     template<typename T> struct is_simd_int: std::false_type {};
     template<typename T> struct is_simd_float: std::false_type {};
+#ifdef __GNUC__
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wignored-attributes"
+#endif
+
 #if __SSE2__
     template<>struct is_simd<__m128i>: std::true_type {};
     template<>struct is_simd<__m128>:  std::true_type {};
@@ -57,6 +62,9 @@ namespace types {
     template<class T> inline constexpr bool is_simd_int_v = is_simd_int<T>::value;
     template<class T> inline constexpr bool is_simd_float_v = is_simd_float<T>::value;
 } // namespace types
+#ifdef __GNUC__
+  #pragma GCC diagnostic pop
+#endif
 #endif
 
 
