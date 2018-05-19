@@ -206,7 +206,11 @@ public:
     const uint8_t *buf() const {return &state_[0];}
     using ThisType = AesCtr<GeneratedType, UNROLL_COUNT>;
 
-    template<typename T, typename=std::enable_if_t<types::is_integral_v<T>>>
+    template<typename T, bool manual_override=false,
+             typename=std::enable_if_t<
+                manual_override || types::is_integral_v<T> || types::is_simd_int_v<T>
+                >
+             >
     class buffer_view {
         ThisType &ref;
     public:
@@ -226,8 +230,8 @@ public:
             return reinterpret_cast<pointer>(&ref.state_[BUFSIZE]);
         }
     };
-    template<typename T, typename=std::enable_if_t<types::is_integral_v<T>>>
-    buffer_view<T> view() {return buffer_view<T>(*this);}
+    template<typename T, bool manual_override=false>
+    buffer_view<T, manual_override> view() {return buffer_view<T, manual_override>(*this);}
 };
 #undef AES_ROUND
 
