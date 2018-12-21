@@ -30,7 +30,9 @@ namespace types {
     template<>struct is_integral<signed long>: std::true_type {};
     template<>struct is_integral<unsigned long long>: std::true_type {};
     template<>struct is_integral<signed long long>: std::true_type {};
+#if __cplusplus >= 201703L
     template<class T> inline constexpr bool is_integral_v = is_integral<T>::value;
+#endif
 
     template<typename T> struct is_simd: std::false_type {};
     template<typename T> struct is_simd_int: std::false_type {};
@@ -58,9 +60,11 @@ namespace types {
     template<>struct is_simd_int<__m512i>: std::true_type {};
     template<>struct is_simd_float<__m512>: std::true_type {};
 #endif
+#if __cplusplus >= 201703L
     template<class T> inline constexpr bool is_simd_v = is_simd<T>::value;
     template<class T> inline constexpr bool is_simd_int_v = is_simd_int<T>::value;
     template<class T> inline constexpr bool is_simd_float_v = is_simd_float<T>::value;
+#endif
 } // namespace types
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
@@ -101,7 +105,7 @@ using std::size_t;
 
 template<typename GeneratedType=uint64_t, size_t UNROLL_COUNT=4,
          typename=std::enable_if_t<
-            types::is_integral_v<GeneratedType> || types::is_simd_int_v<GeneratedType>
+            types::is_integral<GeneratedType>::value || types::is_simd_int<GeneratedType>::value
             >
         >
 class AesCtr {
@@ -150,7 +154,7 @@ class AesCtr {
 
 public:
     using result_type = GeneratedType;
-    AesCtr(uint64_t seedval=0) {
+    constexpr AesCtr(uint64_t seedval=0) {
         seed(seedval);
     }
     void generate_new_values() {
@@ -208,7 +212,7 @@ public:
 
     template<typename T, bool manual_override=false,
              typename=std::enable_if_t<
-                manual_override || types::is_integral_v<T> || types::is_simd_int_v<T>
+                manual_override || types::is_integral<T>::value || types::is_simd_int<T>::value
                 >
              >
     class buffer_view {
