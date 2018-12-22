@@ -104,9 +104,9 @@ using std::size_t;
 
 
 template<typename GeneratedType=uint64_t, size_t UNROLL_COUNT=4,
-         typename=std::enable_if_t<
+         typename=typename std::enable_if<
             types::is_integral<GeneratedType>::value || types::is_simd_int<GeneratedType>::value
-            >
+            >::type
         >
 class AesCtr {
     static const size_t AESCTR_ROUNDS = 10;
@@ -137,7 +137,7 @@ class AesCtr {
           state.ctr_[ind] =
               _mm_add_epi64(state.ctr_[ind], _mm_set_epi64x(0, UNROLL_COUNT));
               _mm_store_si128(
-                  (__m128i *)&state.state_[16 * ind],
+                  reinterpret_cast<__m128i *>(&state.state_[16 * ind]),
                   _mm_aesenclast_si128(work[ind], state.seed_[AESCTR_ROUNDS]));
           aes_unroll_impl<ind + 1, todo - 1>().add_store(work, state);
         }
@@ -203,7 +203,7 @@ public:
         count /= DIV;
         __m128i tmp(_mm_xor_si128(_mm_set_epi64x(0, count), seed_[0]));
         for (unsigned r = 1; r <= AESCTR_ROUNDS - 1; tmp = _mm_aesenc_si128(tmp, seed_[r++]));
-        _mm_store_si128((__m128i *)ret, _mm_aesenclast_si128(tmp, seed_[AESCTR_ROUNDS]));
+        _mm_store_si128(reinterpret_cast<__m128i *>(ret), _mm_aesenclast_si128(tmp, seed_[AESCTR_ROUNDS]));
         return ret[offset_];
     }
     static constexpr size_t BUFSIZE = sizeof(state_);
@@ -211,9 +211,9 @@ public:
     using ThisType = AesCtr<GeneratedType, UNROLL_COUNT>;
 
     template<typename T, bool manual_override=false,
-             typename=std::enable_if_t<
+             typename=typename std::enable_if<
                 manual_override || types::is_integral<T>::value || types::is_simd_int<T>::value
-                >
+                >::type
              >
     class buffer_view {
         ThisType &ref;
