@@ -15,6 +15,12 @@
 #include <type_traits>
 #include <immintrin.h>
 
+#if __cplusplus >= 201703L
+#define AES_MAYBE_UNUSED [[maybe_unused]]
+#else
+#define AES_MAYBE_UNUSED
+#endif
+
 #ifndef TYPES_TEMPLATES
 #define TYPES_TEMPLATES
 namespace types {
@@ -138,11 +144,11 @@ class AesCtr {
     // Termination conditions
     template<size_t ind>
     struct aes_unroll_impl<ind, 0> {
-        void operator()([[maybe_unused]] __m128i *ret, [[maybe_unused]] AesCtr &state) const {}
-        void aesenc([[maybe_unused]] __m128i *ret, [[maybe_unused]] __m128i subkey) const {}
+        void operator()(AES_MAYBE_UNUSED __m128i *ret, AES_MAYBE_UNUSED AesCtr &state) const {}
+        void aesenc(AES_MAYBE_UNUSED __m128i *ret, AES_MAYBE_UNUSED __m128i subkey) const {}
         template<size_t NUMROLL>
-        void round_and_enc([[maybe_unused]] __m128i *ret, [[maybe_unused]] AesCtr &state) const {}
-        void add_store([[maybe_unused]] __m128i *work, [[maybe_unused]] AesCtr &state) const {}
+        void round_and_enc(AES_MAYBE_UNUSED __m128i *ret, AES_MAYBE_UNUSED AesCtr &state) const {}
+        void add_store(AES_MAYBE_UNUSED __m128i *work, AES_MAYBE_UNUSED AesCtr &state) const {}
     };
 
 public:
@@ -251,5 +257,6 @@ struct is_aes<AesCtr<T, n>>: std::true_type {};
 
 #undef AESCTR_UNROLL
 #undef AESCTR_ROUNDS
+#undef AES_MAYBE_UNUSED
 
 #endif
