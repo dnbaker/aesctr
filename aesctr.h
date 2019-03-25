@@ -15,6 +15,12 @@
 #include <type_traits>
 #include <immintrin.h>
 
+#if __cplusplus >= 201703L
+#define AES_MAYBE_UNUSED [[maybe_unused]]
+#else
+#define AES_MAYBE_UNUSED
+#endif
+
 #ifndef TYPES_TEMPLATES
 #define TYPES_TEMPLATES
 namespace types {
@@ -30,15 +36,13 @@ namespace types {
     template<>struct is_integral<signed long>: std::true_type {};
     template<>struct is_integral<unsigned long long>: std::true_type {};
     template<>struct is_integral<signed long long>: std::true_type {};
+#if __cplusplus >= 201703L
     template<class T> inline constexpr bool is_integral_v = is_integral<T>::value;
+#endif
 
     template<typename T> struct is_simd: std::false_type {};
     template<typename T> struct is_simd_int: std::false_type {};
     template<typename T> struct is_simd_float: std::false_type {};
-#ifdef __GNUC__
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wignored-attributes"
-#endif
 
 #if __SSE2__
     template<>struct is_simd<__m128i>: std::true_type {};
@@ -58,13 +62,12 @@ namespace types {
     template<>struct is_simd_int<__m512i>: std::true_type {};
     template<>struct is_simd_float<__m512>: std::true_type {};
 #endif
+#if __cplusplus >= 201703L
     template<class T> inline constexpr bool is_simd_v = is_simd<T>::value;
     template<class T> inline constexpr bool is_simd_int_v = is_simd_int<T>::value;
     template<class T> inline constexpr bool is_simd_float_v = is_simd_float<T>::value;
-} // namespace types
-#ifdef __GNUC__
-  #pragma GCC diagnostic pop
 #endif
+} // namespace types
 #endif
 
 
@@ -100,9 +103,9 @@ using std::size_t;
 
 
 template<typename GeneratedType=uint64_t, size_t UNROLL_COUNT=4,
-         typename=std::enable_if_t<
-            types::is_integral_v<GeneratedType> || types::is_simd_int_v<GeneratedType>
-            >
+         typename=typename std::enable_if<
+            types::is_integral<GeneratedType>::value || types::is_simd_int<GeneratedType>::value
+            >::type
         >
 class AesCtr {
     static const size_t AESCTR_ROUNDS = 10;
@@ -133,7 +136,7 @@ class AesCtr {
           state.ctr_[ind] =
               _mm_add_epi64(state.ctr_[ind], _mm_set_epi64x(0, UNROLL_COUNT));
               _mm_store_si128(
-                  (__m128i *)&state.state_[16 * ind],
+                  reinterpret_cast<__m128i *>(&state.state_[16 * ind]),
                   _mm_aesenclast_si128(work[ind], state.seed_[AESCTR_ROUNDS]));
           aes_unroll_impl<ind + 1, todo - 1>().add_store(work, state);
         }
@@ -141,16 +144,16 @@ class AesCtr {
     // Termination conditions
     template<size_t ind>
     struct aes_unroll_impl<ind, 0> {
-        void operator()([[maybe_unused]] __m128i *ret, [[maybe_unused]] AesCtr &state) const {}
-        void aesenc([[maybe_unused]] __m128i *ret, [[maybe_unused]] __m128i subkey) const {}
+        void operator()(AES_MAYBE_UNUSED __m128i *ret, AES_MAYBE_UNUSED AesCtr &state) const {}
+        void aesenc(AES_MAYBE_UNUSED __m128i *ret, AES_MAYBE_UNUSED __m128i subkey) const {}
         template<size_t NUMROLL>
-        void round_and_enc([[maybe_unused]] __m128i *ret, [[maybe_unused]] AesCtr &state) const {}
-        void add_store([[maybe_unused]] __m128i *work, [[maybe_unused]] AesCtr &state) const {}
+        void round_and_enc(AES_MAYBE_UNUSED __m128i *ret, AES_MAYBE_UNUSED AesCtr &state) const {}
+        void add_store(AES_MAYBE_UNUSED __m128i *work, AES_MAYBE_UNUSED AesCtr &state) const {}
     };
 
 public:
     using result_type = GeneratedType;
-    AesCtr(uint64_t seedval=0) {
+    constexpr AesCtr(uint64_t seedval=0) {
         seed(seedval);
     }
     void generate_new_values() {
@@ -199,7 +202,7 @@ public:
         count /= DIV;
         __m128i tmp(_mm_xor_si128(_mm_set_epi64x(0, count), seed_[0]));
         for (unsigned r = 1; r <= AESCTR_ROUNDS - 1; tmp = _mm_aesenc_si128(tmp, seed_[r++]));
-        _mm_store_si128((__m128i *)ret, _mm_aesenclast_si128(tmp, seed_[AESCTR_ROUNDS]));
+        _mm_store_si128(reinterpret_cast<__m128i *>(ret), _mm_aesenclast_si128(tmp, seed_[AESCTR_ROUNDS]));
         return ret[offset_];
     }
     static constexpr size_t BUFSIZE = sizeof(state_);
@@ -207,9 +210,9 @@ public:
     using ThisType = AesCtr<GeneratedType, UNROLL_COUNT>;
 
     template<typename T, bool manual_override=false,
-             typename=std::enable_if_t<
-                manual_override || types::is_integral_v<T> || types::is_simd_int_v<T>
-                >
+             typename=typename std::enable_if<
+                manual_override || types::is_integral<T>::value || types::is_simd_int<T>::value
+                >::type
              >
     class buffer_view {
         ThisType &ref;
@@ -254,5 +257,6 @@ struct is_aes<AesCtr<T, n>>: std::true_type {};
 
 #undef AESCTR_UNROLL
 #undef AESCTR_ROUNDS
+#undef AES_MAYBE_UNUSED
 
 #endif
