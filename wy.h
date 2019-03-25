@@ -46,9 +46,12 @@ struct WyHashFunc {
         return wyhash64_stateless(x);
     }
 };
+
 struct XXH3Func {
     static constexpr uint64_t PRIME64_3 =  1609587929392839161ULL;  // 0b0001011001010110011001111011000110011110001101110111100111111001
+    static constexpr uint64_t PRIME64_1 = 11400714785074694791ULL;
     static constexpr uint64_t apply(uint64_t *x) {
+        *x += PRIME64_1;
         *x ^= *x >> 29;
         *x *= PRIME64_3;
         *x ^= *x >> 32;
@@ -86,8 +89,7 @@ public:
         } else {
             CONST_IF(sizeof(T) <= sizeof(uint64_t)) {
                 return static_cast<T>(this->next_value());
-            }
-            else {
+            } else {
                 T ret;
                 size_t offset = 0;
                 for(size_t i = 0; i < (sizeof(T) + sizeof(uint64_t) - 1) / sizeof(uint64_t); ++i) {
