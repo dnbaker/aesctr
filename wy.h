@@ -68,7 +68,13 @@ class WyHash {
 public:
     WyHash(uint64_t seed=0): state_(seed ? seed: uint64_t(1337)) {
         std::memset(unrolled_stuff_, 0, sizeof(unrolled_stuff_));
-        if(unroll_count) off() = sizeof(unrolled_stuff_);
+        CONST_IF(unroll_count) off() = sizeof(unrolled_stuff_);
+    }
+    void seed(uint64_t newseed) {
+        state_ = newseed;
+        CONST_IF(unroll_count) {
+            off() = sizeof(unrolled_stuff_);
+        }
     }
     const uint8_t *as_bytes() const {return reinterpret_cast<const uint8_t *>(unrolled_stuff_);}
     uint64_t next_value() {
