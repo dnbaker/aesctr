@@ -19,11 +19,13 @@
 #  endif
 #endif
 #ifndef NO_UNIQUE_ADDRESS
-# if __has_cpp_attribute(no_unique_address)
+#  if __has_cpp_attribute(no_unique_address)
 #    define NO_UNIQUE_ADDRESS [[no_unique_address]]
 #  else
 #    define NO_UNIQUE_ADDRESS
-#  pragma messsage("no unique address not supported")
+#    if VERBOSE_AF
+#      pragma messsage("no unique address not supported")
+#    endif
 #  endif
 #endif
 
@@ -62,9 +64,9 @@ struct XXH3Func {
 template<typename T=std::uint64_t, size_t unroll_count=0, typename HashFunc=WyHashFunc>
 class WyHash {
     uint64_t state_;
-    uint64_t unrolled_stuff_[unroll_count];
-    unsigned offset_[!!unroll_count];
-    unsigned &off() {return offset_[0];}
+    uint64_t unrolled_stuff_[unroll_count ? unroll_count: size_t(1)];
+    unsigned offset_;
+    unsigned &off() {return offset_;}
 public:
     WyHash(uint64_t seed=0): state_(seed ? seed: uint64_t(1337)) {
         std::memset(unrolled_stuff_, 0, sizeof(unrolled_stuff_));
