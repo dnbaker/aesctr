@@ -3,6 +3,8 @@
 // Further adapted by D. Baker from https://github.com/lemire/testingRNG/blob/42a3a76feef1126d632f7a56181dacb77ba1ccc7/source/wyhash.h
 
 // XXH3 ported from https://github.com/Cyan4973/xxHash/blob/4229399fc96a034fac522525946f5452d5bf0a65/xxh3.h
+#ifndef WYHASH_RNG_H__
+#define WYHASH_RNG_H__
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -111,4 +113,6 @@ public:
     }
 };
 
-}
+} // namespace wy
+
+#endif /* #ifndef WYHASH_RNG_H__ */
