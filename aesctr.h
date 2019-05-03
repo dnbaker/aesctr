@@ -170,8 +170,8 @@ public:
         offset_ += sizeof(result_type);
         return ret;
     }
-    result_type max() const {return std::numeric_limits<result_type>::max();}
-    result_type min() const {return std::numeric_limits<result_type>::min();}
+    static constexpr result_type max() {return std::numeric_limits<result_type>::max();}
+    static constexpr result_type min() {return std::numeric_limits<result_type>::min();}
     void seed(uint64_t k) {
         seed(_mm_set_epi64x(0, k));
     }
