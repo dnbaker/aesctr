@@ -65,6 +65,9 @@ struct XXH3Func {
 
 template<typename T=std::uint64_t, size_t unroll_count=0, typename HashFunc=WyHashFunc>
 class WyHash {
+public:
+    using result_type = T;
+private:
     uint64_t state_;
     uint64_t unrolled_stuff_[unroll_count ? unroll_count: size_t(1)];
     unsigned offset_;
