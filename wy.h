@@ -66,10 +66,11 @@ struct XXH3Func {
 template<typename T=std::uint64_t, size_t unroll_count=0, typename HashFunc=WyHashFunc>
 class WyHash {
 public:
+    static constexpr size_t UNROLL_COUNT = unroll_count ? unroll_count: size_t(1);
     using result_type = T;
 private:
     uint64_t state_;
-    uint64_t unrolled_stuff_[unroll_count ? unroll_count: size_t(1)];
+    uint64_t unrolled_stuff_[UNROLL_COUNT];
     unsigned offset_;
     unsigned &off() {return offset_;}
 public:
@@ -90,9 +91,9 @@ public:
     static auto constexpr min() {return std::numeric_limits<T>::min();}
     static auto constexpr max() {return std::numeric_limits<T>::max();}
     T operator()() {
-        CONST_IF(unroll_count) {
+        if(unroll_count) {
             if(off() >= sizeof(unrolled_stuff_)) {
-                for(size_t i = 0; i < unroll_count; unrolled_stuff_[i++] = next_value());
+                for(size_t i = 0; i < UNROLL_COUNT; unrolled_stuff_[i++] = next_value());
                 off() = 0;
             }
             T ret;
