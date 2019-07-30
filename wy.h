@@ -35,14 +35,17 @@ namespace wy {
 using std::uint64_t;
 using std::size_t;
 
+
+static inline constexpr uint64_t _wymum(uint64_t x, uint64_t y) {
+    __uint128_t l = x;
+    l *= y;
+    return l ^ (l >> 64);
+}
+
 // call wyhash64_seed before calling wyhash64
 static inline constexpr uint64_t wyhash64_stateless(uint64_t *seed) {
   *seed += UINT64_C(0x60bee2bee120fc15);
-  __uint128_t tmp = (__uint128_t)*seed * UINT64_C(0xa3b195354a39b70d);
-  uint64_t m1 = (tmp >> 64) ^ tmp;
-  tmp = (__uint128_t)m1 * UINT64_C(0x1b03738712fad5c9);
-  uint64_t m2 = (tmp >> 64) ^ tmp;
-  return m2;
+  return _wymum(*seed ^ 0xe7037ed1a0b428dbull, *seed);
 }
 
 struct WyHashFunc {
