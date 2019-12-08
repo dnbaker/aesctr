@@ -12,6 +12,7 @@
 #include <limits>
 #include <cinttypes>
 #include <cstdio>
+#include <random>
 
 #ifndef CONST_IF
 #  if defined(__cpp_if_constexpr) && __cplusplus >= __cpp_if_constexpr
@@ -67,7 +68,10 @@ struct XXH3Func {
 };
 
 template<typename T=std::uint64_t, size_t unroll_count=0, typename HashFunc=WyHashFunc>
-class WyHash {
+class WyRand {
+    /*
+     * According to our benchmarks on Haswell, 2 is the number providing the fastest results.
+     */
 public:
     static constexpr size_t UNROLL_COUNT = unroll_count ? unroll_count: size_t(1);
     using result_type = T;
@@ -77,7 +81,7 @@ private:
     unsigned offset_;
     unsigned &off() {return offset_;}
 public:
-    WyHash(uint64_t seed=0): state_(seed ? seed: uint64_t(1337)) {
+    WyRand(uint64_t seed=0): state_(seed ? seed: uint64_t(1337)) {
         std::memset(unrolled_stuff_, 0, sizeof(unrolled_stuff_));
         CONST_IF(unroll_count) off() = sizeof(unrolled_stuff_);
     }
@@ -119,6 +123,8 @@ public:
         }
     }
 };
+template<typename T=std::uint64_t, size_t unroll_count=2, typename HashFunc=WyHashFunc>
+using WyHash = WyRand<T, unroll_count, HashFunc>; // aliases to fastest generator. May be deprecated.
 
 } // namespace wy
 
