@@ -13,6 +13,7 @@
 #include <cinttypes>
 #include <cstdio>
 #include <random>
+#include <x86intrin.h>
 
 #ifndef CONST_IF
 #  if defined(__cpp_if_constexpr) && __cplusplus >= __cpp_if_constexpr
@@ -49,8 +50,21 @@ static inline constexpr uint64_t wyhash64_stateless(uint64_t *seed) {
   return _wymum(*seed ^ 0xe7037ed1a0b428dbull, *seed);
 }
 
+#ifdef __AVX512DQ__
+static inline constexpr __m512i wyhash64_stateless(__m512i *seed) {
+  __m512i s1 = _mm512_add_epi64(_mm512_load_si512(seed), _mm512_set1_epi64(0x60bee2bee120fc15uLL));
+  _mm512_store_si512(seed, s1);
+  __m512i s2 = _mm512_xor_epi64(s1, _mm512_set1_epi64(0xe7037ed1a0b428dbull));
+  for(unsigned i = 0; i < sizeof(s1) / sizeof(uint64_t); ++i) {
+    ((uint64_t *)s1)[i] = _wymum(((uint64_t *)s1)[i], ((uint64_t *)s2)[i]);
+  }
+  return s1;
+}
+#endif
+
 struct WyHashFunc {
-    static constexpr uint64_t apply(uint64_t *x) {
+    template<typename T>
+    static constexpr T apply(T *x) {
         return wyhash64_stateless(x);
     }
 };
@@ -81,6 +95,7 @@ private:
     unsigned offset_;
     unsigned &off() {return offset_;}
 public:
+    using ThisType = WyRand<T, unroll_count, HashFunc>;
     WyRand(uint64_t seed=0): state_(seed ? seed: uint64_t(1337)) {
         std::memset(unrolled_stuff_, 0, sizeof(unrolled_stuff_));
         CONST_IF(unroll_count) off() = sizeof(unrolled_stuff_);
@@ -122,9 +137,37 @@ public:
             }
         }
     }
+    template<typename T2=T, bool manual_override=false,
+             typename=typename std::enable_if<
+                manual_override || std::is_integral<T>::value
+                >::type
+             >
+    class buffer_view {
+        ThisType &ref;
+    public:
+        buffer_view(ThisType &ctr): ref{ctr} {}
+        using const_pointer = const T2 *;
+        using pointer       = T2 *;
+        const_pointer cbegin() const {
+            return reinterpret_cast<const_pointer>(&ref.unrolled_stuff_[0]);
+        }
+        const_pointer cend() const {
+            return reinterpret_cast<const_pointer>(&ref.unrolled_stuff_[UNROLL_COUNT]);
+        }
+        pointer begin() {
+            return reinterpret_cast<pointer>(&ref.unrolled_stuff_[0]);
+        }
+        pointer end() {
+            return reinterpret_cast<pointer>(&ref.unrolled_stuff_[UNROLL_COUNT]);
+        }
+    };
+    template<typename T2=T, bool manual_override=false>
+    buffer_view<T2, manual_override> view() {return buffer_view<T2, manual_override>(*this);}
 };
 template<typename T=std::uint64_t, size_t unroll_count=2, typename HashFunc=WyHashFunc>
 using WyHash = WyRand<T, unroll_count, HashFunc>; // aliases to fastest generator. May be deprecated.
+template<typename T=std::uint64_t, size_t unroll_count=2>
+using XX3Rand = WyRand<T, unroll_count, XXH3Func>;
 
 } // namespace wy
 
