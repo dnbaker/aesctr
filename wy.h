@@ -51,7 +51,7 @@ static inline constexpr uint64_t wyhash64_stateless(uint64_t *seed) {
 }
 
 #ifdef __AVX512DQ__
-static inline constexpr __m512i wyhash64_stateless(__m512i *seed) {
+static inline __m512i wyhash64_stateless(__m512i *seed) {
   __m512i s1 = _mm512_add_epi64(_mm512_load_si512(seed), _mm512_set1_epi64(0x60bee2bee120fc15uLL));
   _mm512_store_si512(seed, s1);
   __m512i s2 = _mm512_xor_epi64(s1, _mm512_set1_epi64(0xe7037ed1a0b428dbull));
