@@ -56,7 +56,7 @@ static inline constexpr __m512i wyhash64_stateless(__m512i *seed) {
   _mm512_store_si512(seed, s1);
   __m512i s2 = _mm512_xor_epi64(s1, _mm512_set1_epi64(0xe7037ed1a0b428dbull));
   for(unsigned i = 0; i < sizeof(s1) / sizeof(uint64_t); ++i) {
-    ((uint64_t *)s1)[i] = _wymum(((uint64_t *)s1)[i], ((uint64_t *)s2)[i]);
+    ((uint64_t *)&s1)[i] = _wymum(((uint64_t *)&s1)[i], ((uint64_t *)&s2)[i]);
   }
   return s1;
 }
