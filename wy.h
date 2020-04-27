@@ -50,6 +50,11 @@ static inline constexpr uint64_t wyhash64_stateless(uint64_t *seed) {
   return _wymum(*seed ^ 0xe7037ed1a0b428dbull, *seed);
 }
 
+struct WyHashFunc {
+    static constexpr uint64_t apply(uint64_t *x) {
+        return wyhash64_stateless(x);
+    }
+};
 #ifdef __AVX512DQ__
 static inline __m512i wyhash64_stateless(__m512i *seed) {
   __m512i s1 = _mm512_add_epi64(_mm512_load_si512(seed), _mm512_set1_epi64(0x60bee2bee120fc15uLL));
@@ -61,13 +66,6 @@ static inline __m512i wyhash64_stateless(__m512i *seed) {
   return s1;
 }
 #endif
-
-struct WyHashFunc {
-    template<typename T>
-    static constexpr T apply(T *x) {
-        return wyhash64_stateless(x);
-    }
-};
 
 struct XXH3Func {
     static constexpr uint64_t PRIME64_3 =  1609587929392839161ULL;  // 0b0001011001010110011001111011000110011110001101110111100111111001
@@ -113,24 +111,28 @@ public:
     static auto constexpr min() {return std::numeric_limits<T>::min();}
     static auto constexpr max() {return std::numeric_limits<T>::max();}
     T operator()() {
-        if(unroll_count) {
-            if(off() >= sizeof(unrolled_stuff_)) {
+        return this->generate<T>();
+    }
+    template<typename OT>
+    OT generate() {
+        CONST_IF(unroll_count) {
+            if(off() + sizeof(OT) > sizeof(unrolled_stuff_)) {
                 for(size_t i = 0; i < UNROLL_COUNT; unrolled_stuff_[i++] = next_value());
                 off() = 0;
             }
-            T ret;
-            std::memcpy(&ret, as_bytes() + off(), sizeof(T));
-            off() += sizeof(T);
+            OT ret;
+            std::memcpy(&ret, as_bytes() + off(), sizeof(OT));
+            off() += sizeof(OT);
             return ret;
         } else {
-            CONST_IF(sizeof(T) <= sizeof(uint64_t)) {
-                return static_cast<T>(this->next_value());
+            CONST_IF(sizeof(OT) <= sizeof(uint64_t)) {
+                return static_cast<OT>(this->next_value());
             } else {
-                T ret;
+                OT ret;
                 size_t offset = 0;
-                for(size_t i = 0; i < (sizeof(T) + sizeof(uint64_t) - 1) / sizeof(uint64_t); ++i) {
+                for(size_t i = 0; i < (sizeof(OT) + sizeof(uint64_t) - 1) / sizeof(uint64_t); ++i) {
                     uint64_t v = next_value();
-                    std::memcpy(&ret, &v, std::min(sizeof(v), sizeof(T) - offset * sizeof(uint64_t)));
+                    std::memcpy(&ret, &v, std::min(sizeof(v), sizeof(OT) - offset * sizeof(uint64_t)));
                     ++offset;
                 }
                 return ret;
@@ -168,6 +170,7 @@ template<typename T=std::uint64_t, size_t unroll_count=2, typename HashFunc=WyHa
 using WyHash = WyRand<T, unroll_count, HashFunc>; // aliases to fastest generator. May be deprecated.
 template<typename T=std::uint64_t, size_t unroll_count=2>
 using XX3Rand = WyRand<T, unroll_count, XXH3Func>;
+
 
 } // namespace wy
 
