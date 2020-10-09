@@ -38,20 +38,32 @@ using std::uint64_t;
 using std::size_t;
 
 
-static inline constexpr uint64_t _wymum(uint64_t x, uint64_t y) {
+static inline
+#if __cplusplus >= 201402L
+constexpr
+#endif
+uint64_t _wymum(uint64_t x, uint64_t y) {
     __uint128_t l = x;
     l *= y;
     return l ^ (l >> 64);
 }
 
 // call wyhash64_seed before calling wyhash64
-static inline constexpr uint64_t wyhash64_stateless(uint64_t *seed) {
+static inline
+#if __cplusplus >= 201402L
+constexpr
+#endif
+uint64_t wyhash64_stateless(uint64_t *seed) {
   *seed += UINT64_C(0x60bee2bee120fc15);
   return _wymum(*seed ^ 0xe7037ed1a0b428dbull, *seed);
 }
 
 struct WyHashFunc {
-    static constexpr uint64_t apply(uint64_t *x) {
+    static
+#if __cplusplus >= 201402L
+    constexpr
+#endif
+    uint64_t apply(uint64_t *x) {
         return wyhash64_stateless(x);
     }
 };
@@ -70,7 +82,11 @@ static inline __m512i wyhash64_stateless(__m512i *seed) {
 struct XXH3Func {
     static constexpr uint64_t PRIME64_3 =  1609587929392839161ULL;  // 0b0001011001010110011001111011000110011110001101110111100111111001
     static constexpr uint64_t PRIME64_1 = 11400714785074694791ULL;
-    static constexpr uint64_t apply(uint64_t *x) {
+    static
+#if __cplusplus >= 201402L
+    constexpr
+#endif
+        uint64_t apply(uint64_t *x) {
         *x += PRIME64_1;
         *x ^= *x >> 29;
         *x *= PRIME64_3;
@@ -108,8 +124,8 @@ public:
     uint64_t next_value() {
         return HashFunc().apply(&state_);
     }
-    static auto constexpr min() {return std::numeric_limits<T>::min();}
-    static auto constexpr max() {return std::numeric_limits<T>::max();}
+    static T constexpr min() {return std::numeric_limits<T>::min();}
+    static T constexpr max() {return std::numeric_limits<T>::max();}
     T operator()() {
         return this->generate<T>();
     }
